@@ -1,5 +1,4 @@
 import os
-import json
 from fastapi import FastAPI, File, UploadFile
 
 from doc_search import DocSearchManage
