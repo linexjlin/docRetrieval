@@ -5,12 +5,13 @@ from langchain.document_loaders import TextLoader
 from langchain.document_loaders import DirectoryLoader
 import os
 
+from dotenv import load_dotenv
+load_dotenv()
+
+default_model_name = os.getenv("EMB_MODEL") if os.getenv("EMB_MODEL") else "all-MiniLM-L6-v2"
+
 scenes_path = "scenes"
 index_path = "indexes"
-
-#default_model_name = "all-MiniLM-L6-v2"
-default_model_name = "moka-ai/m3e-base"
-
 
 class DocSearch:
     def __init__(self, model_name=default_model_name, data_path=scenes_path, persist_directory=".chroma"):
@@ -20,15 +21,12 @@ class DocSearch:
         self.embedding_function = SentenceTransformerEmbeddings(model_name=self.model_name)
         self.text_splitter = CharacterTextSplitter(chunk_size=800, chunk_overlap=0)
         #self.loader = TextLoader(self.data_path)
-        self.db = None
-
-    def load_to_db(self):
-        db_file = f"{self.persist_directory}/chroma.sqlite3"
-        # check if db_file exist 
-        if os.path.exist(db_file):
-            self.db = Chroma(persist_directory=self.persist_directory, self.embedding_function)
-            return
+        #self.db = None
+        self.db = Chroma(embedding_function=self.embedding_function,persist_directory=self.persist_directory)
         
+
+    def load_all(self):
+        # remove index?
         self.loader = DirectoryLoader(self.data_path, glob="**/*.txt", loader_cls=TextLoader)
         documents = self.loader.load()
         print(f"reload documents from {self.data_path}")
@@ -37,6 +35,24 @@ class DocSearch:
         if len(documents)>0:
             docs = self.text_splitter.split_documents(documents)
             self.db = Chroma.from_documents(docs, self.embedding_function, persist_directory=self.persist_directory)
+
+    def add_document(self,doc_path):
+        print(f"delete {doc_path}")
+        self.del_document(doc_path)
+
+        print(f"embeding {doc_path}")
+        loader = TextLoader(doc_path)
+        documents = loader.load()
+        self.db.add_documents(documents)
+
+        self.db.persist()
+
+    def del_document(self,doc_path):
+        self.db.delete(where=doc_path)
+
+    def list_documents(self):
+        print(self.db.get()["metadatas"])
+        return self.db.get()["metadatas"]
 
     def query(self, question):
         if self.db is None:
@@ -71,6 +87,5 @@ class DocSearchManage:
             data_path=f"{scenes_path}/{scene_id}"
             print(data_path)
             self.data[scene_id] = DocSearch(data_path=data_path, persist_directory=f"{index_path}/chroma.{scene_id}")
-            self.data[scene_id].load_to_db()
         return self.data[scene_id]
     

@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI, File, UploadFile
+from dotenv import load_dotenv
 
 from doc_search import DocSearchManage
 
@@ -9,7 +10,7 @@ doc_manager = DocSearchManage()
 
 app = FastAPI()
 
-@app.post("/api/upload/{scene}/{path}")
+@app.post("/api/documents/{scene}/{path}")
 async def create_upload_file(scene: str, path: str, file: UploadFile = File(...)):
     storage_path = f"{scenes_path}/{scene}/{path}"
     user_path = f"{scene}/{path}"
@@ -21,9 +22,22 @@ async def create_upload_file(scene: str, path: str, file: UploadFile = File(...)
         f.write(await file.read())
         dcs = doc_manager.get(scene)
         f.close()
-        dcs.load_to_db()
+        dcs.add_document(save_path)
 
     return {"message": f"File {file.filename} uploaded to {user_path}"}
+
+@app.delete("/api/documents/{scene}")
+async def create_upload_file(scene: str,file: str):
+    dcs = doc_manager.get(scene)
+    docs = dcs.del_document(file)
+
+    return {"message": f"File {file} deleted"}
+
+@app.get("/api/documents/{scene}")
+async def create_upload_file(scene: str):
+    dcs = doc_manager.get(scene)
+    docs = dcs.list_documents()
+    return docs
 
 @app.get("/api/{scene}/search")
 async def search(scene: str,q: str):
