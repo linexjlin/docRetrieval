@@ -8,8 +8,12 @@ import os
 scenes_path = "scenes"
 index_path = "indexes"
 
+#default_model_name = "all-MiniLM-L6-v2"
+default_model_name = "moka-ai/m3e-base"
+
+
 class DocSearch:
-    def __init__(self, model_name="all-MiniLM-L6-v2", data_path=scenes_path, persist_directory=".chroma"):
+    def __init__(self, model_name=default_model_name, data_path=scenes_path, persist_directory=".chroma"):
         self.model_name = model_name
         self.data_path = data_path
         self.persist_directory = persist_directory
@@ -19,6 +23,12 @@ class DocSearch:
         self.db = None
 
     def load_to_db(self):
+        db_file = f"{self.persist_directory}/chroma.sqlite3"
+        # check if db_file exist 
+        if os.path.exist(db_file):
+            self.db = Chroma(persist_directory=self.persist_directory, self.embedding_function)
+            return
+        
         self.loader = DirectoryLoader(self.data_path, glob="**/*.txt", loader_cls=TextLoader)
         documents = self.loader.load()
         print(f"reload documents from {self.data_path}")
@@ -60,7 +70,7 @@ class DocSearchManage:
             os.makedirs(path, exist_ok=True)
             data_path=f"{scenes_path}/{scene_id}"
             print(data_path)
-            self.data[scene_id] = DocSearch(data_path=data_path, persist_directory=f"{index_path}/.chroma.{scene_id}")
+            self.data[scene_id] = DocSearch(data_path=data_path, persist_directory=f"{index_path}/chroma.{scene_id}")
             self.data[scene_id].load_to_db()
         return self.data[scene_id]
     
