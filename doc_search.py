@@ -19,7 +19,7 @@ class DocSearch:
         self.data_path = data_path
         self.persist_directory = persist_directory
         self.embedding_function = SentenceTransformerEmbeddings(model_name=self.model_name)
-        self.text_splitter = CharacterTextSplitter(chunk_size=800, chunk_overlap=0)
+        self.text_splitter = CharacterTextSplitter(chunk_size=600, chunk_overlap=200)
         #self.loader = TextLoader(self.data_path)
         #self.db = None
         self.db = Chroma(embedding_function=self.embedding_function,persist_directory=self.persist_directory)
@@ -43,7 +43,9 @@ class DocSearch:
         print(f"embeding {doc_path}")
         loader = TextLoader(doc_path)
         documents = loader.load()
-        self.db.add_documents(documents)
+        docs = self.text_splitter.split_documents(documents)
+
+        self.db.add_documents(docs)
 
         self.db.persist()
 
